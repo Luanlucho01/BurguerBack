@@ -1,5 +1,5 @@
 import UserModel from "../models/userModels.js";
-import { registerUser, loginUser } from "../services/authService.js";
+import { registerUser, loginUser, getUserFromToken } from "../services/authService.js";
 
 export const register=async(req,res)=>{
     const {email,senha}=req.body;
@@ -40,7 +40,7 @@ export const login=async(req,res)=>{
     }
 }
 
-export const getUserFromToken=async(req,res)=>{
+export const getUserDetails = async(req,res)=>{
     const token=req.headers.authorization?.split(' ')[1];
     if(!token){
         return res.status(401).json({success:false,message:"Token não providenciado"});
