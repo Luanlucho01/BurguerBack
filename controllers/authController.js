@@ -40,7 +40,7 @@ export const login=async(req,res)=>{
     }
 }
 
-export const getUserFromToken=async(req,res)=>{
+export const getUserDetails = async(req,res)=>{
     const token=req.headers.authorization?.split(' ')[1];
     console.log(token);
     if(!token){
