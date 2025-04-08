@@ -37,7 +37,7 @@ export const loginUser=async(email,senha)=>{
             {id:user.id,email:user.email},
             JWT_SECRET,
             {expiresIn: '1h'}
-        )
+        );
         return{
             success:true,
             message:'Logado com sucesso',
@@ -58,8 +58,7 @@ export const getUserFromToken=async(token)=>{
         const decodedToken= jwt.verify(trimmedToken, JWT_SECRET);
         console.log("Token decodificado:", decodedToken);
 
-        const rows=await pool.query(`SELECT id,email FROM usuarios WHERE email = ?`, [decodedToken.email]);
-        
+        const [rows]=await pool.query(`SELECT id, email FROM usuarios WHERE email = ?`, [decoded.email]);
         if(rows.length===0){
             return {success:false,message:"Usuário não encontrado"}
         }
