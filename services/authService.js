@@ -41,7 +41,8 @@ export const loginUser=async(email,senha)=>{
         return{
             success:true,
             message:'Logado com sucesso',
-            token:token
+            token,
+            user: { id: user.id, email: user.email }
         }
     } catch (error) {
         return {success:false,message:"Falha ao logar",error:error}
@@ -52,14 +53,21 @@ export const loginUser=async(email,senha)=>{
 export const getUserFromToken=async(token)=>{
     try {
         const trimmedToken=token.trim();
-        const decodedToken= await jwt.verify(trimmedToken, JWT_SECRET);
+        console.log("Token recebido:", trimmedToken);
 
-        const rows=await pool.query(`SELECT id,email FROM usuarios WHERE email = ?`, [decodedToken.id]);
+        const decodedToken= jwt.verify(trimmedToken, JWT_SECRET);
+        console.log("Token decodificado:", decodedToken);
+
+        const rows=await pool.query(`SELECT id,email FROM usuarios WHERE email = ?`, [decodedToken.email]);
+        
         if(rows.length===0){
             return {success:false,message:"Usuário não encontrado"}
         }
-        return {success:true,data:rows[0]}
+        
+        const user = rows[0];
+        return {success:true, user};
     } catch (error) {
-        return {success:false,message:"Token inválido",error:error}
+        console.error("Erro de verificação de token:", error);
+        return { success: false, message: "Token inválido ou expirado" };
     }
 }
