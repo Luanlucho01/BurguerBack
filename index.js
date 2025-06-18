@@ -153,7 +153,7 @@ app.post('/login', (req, res) => {
             return res.status(401).json({ success: false, message: "Senha incorreta." });
         }
 
-        const token = jwt.sign({ id: usuario.id, nome: usuario.nome }, JWT_SECRET, { expiresIn: '2h' });
+        const token = jwt.sign({ id: usuario.id, nome: usuario.nome, funcao: usuario.funcao }, JWT_SECRET, { expiresIn: '2h' });
 
         return res.status(200).json({
             success: true,
@@ -161,7 +161,8 @@ app.post('/login', (req, res) => {
             token,
             user: {
                 id: usuario.id,
-                nome: usuario.nome
+                nome: usuario.nome,
+                funcao: usuario.funcao
             }
         });
     });
@@ -269,7 +270,7 @@ app.get('/getUserData', (req, res) => {
         const decodedToken = jwt.verify(token, JWT_SECRET);
         console.log("Token decodificado (Backend):", decodedToken);
 
-        db.query(`SELECT id, nome FROM usuarios WHERE nome = ?`, [decodedToken.nome], (err, rows) => {
+        db.query(`SELECT * FROM usuarios WHERE nome = ?`, [decodedToken.nome], (err, rows) => {
             if (err) {
                 console.error("Erro no banco de dados durante getUserData:", err);
                 return res.status(500).json({ success: false, message: "Erro interno do servidor ao buscar dados do usuário." });
@@ -280,7 +281,7 @@ app.get('/getUserData', (req, res) => {
             }
             
             const user = rows[0];
-            return res.status(200).json({ success: true, user: { nome: user.nome, id: user.id } });
+            return res.status(200).json({ success: true, user: { nome: user.nome, id: user.id, funcao: user.funcao } });
         });
 
     } catch (error) {
@@ -316,5 +317,57 @@ app.post('/pedidos', (req, res) => {
         }
             return res.json({ success: true, pedidoId });
         });
+    });
+});
+
+
+app.get('/historico-pedidos', (req, res) => {
+    const query = `
+        SELECT
+            p.id AS pedido_id,
+            p.data AS data_pedido,
+            u.nome AS nome_usuario,
+            pi.quantidade,
+            prod.nome AS nome_produto,
+            prod.preco AS preco_produto
+        FROM
+            pedidos p
+        JOIN
+            usuarios u ON p.usuario_id = u.id
+        JOIN
+            pedido_itens pi ON p.id = pi.pedido_id
+        JOIN
+            produtos prod ON pi.produto_id = prod.id
+        ORDER BY
+            p.data DESC, p.id DESC;
+    `;
+
+    db.query(query, (err, results) => {
+        if (err) {
+            console.error("Erro ao buscar histórico de pedidos:", err);
+            return res.status(500).json({ success: false, message: "Erro ao buscar histórico de pedidos." });
+        }
+       
+        const historicoAgrupado = results.reduce((acc, current) => {
+            const pedidoId = current.pedido_id;
+            if (!acc[pedidoId]) {
+                acc[pedidoId] = {
+                    pedido_id: pedidoId,
+                    data_pedido: current.data_pedido,
+                    nome_usuario: current.nome_usuario,
+                    itens: []
+                };
+            }
+            acc[pedidoId].itens.push({
+                nome_produto: current.nome_produto,
+                quantidade: current.quantidade,
+                preco_produto: current.preco_produto
+            });
+            return acc;
+        }, {});
+
+        const historicoArray = Object.values(historicoAgrupado);
+
+        return res.status(200).json({ success: true, data: historicoArray });
     });
 });
